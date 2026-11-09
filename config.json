@@ -1,6 +1,9 @@
 {
-  "url": "https://pharmacies-athletes-vertex-treo.trycloudflare.com/?token=aQ4gnKI33Wd12Up8g-LHhSWM1T7pQgOYpcm8YjbaJXs",
-  "root": "https://pharmacies-athletes-vertex-treo.trycloudflare.com",
-  "updated": "2026-11-09T13:10:40Z",
-  "auto": true
+  "enc": "AES-GCM-256",
+  "kdf": "PBKDF2-SHA256",
+  "iter": 310000,
+  "salt": "avYaFkxLQ9AyEDtNhtdkiA==",
+  "iv": "k+FtFEDGeAfcMJgg",
+  "ct": "r4aI8oeqihWuqZSXLzbdx3g6d3W15Q1oVs9drlcJ3L8RlgBF1kXiB3mfNSCD24rn/H75WxQ2GxrkrxG9o7oBE+ZmhrUxc+UHwBbHOLinpliwXeZrZoF0b+Bz5sQQjhuyyxwFcNTn0LX3+MMGywAHdgNRj1ZhgBLRGF6n4+MCXmqUlkX91WFG0oItwAXsCcOcp3LXMW0wID1D58oZgMckd0bL5nsTkCQdYCEZWOeIp6U2wWUwFje6OsQnVGVnnV6jLz5tfc8TaB8++okkSz4Nyhd6bQZH",
+  "updated": "2026-11-09T14:01:42Z"
 }
