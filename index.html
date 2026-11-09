@@ -3,187 +3,220 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>DeepSeek Harness</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ğŸ§ </text></svg>">
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #0a0e17;
-    --fg: #e8ecf3;
-    --dim: #7a8699;
-    --accent: #4d7cff;
-    --ok: #2ecc71;
-    --bad: #e74c3c;
-    --card: #131a26;
-    --border: #1f2937;
+    --bg: #0a0e17; --fg: #e8ecf3; --dim: #7a8699;
+    --accent: #4d7cff; --ok: #2ecc71; --bad: #e74c3c; --warn: #f39c12;
+    --card: #131a26; --border: #1f2937;
   }
   @media (prefers-color-scheme: light) {
     :root { --bg:#f7f9fc; --fg:#111827; --dim:#6b7280; --card:#fff; --border:#e5e7eb; }
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
   body {
-    margin: 0;
-    display: grid;
-    place-items: center;
-    background: var(--bg);
-    color: var(--fg);
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: var(--bg); color: var(--fg); padding: 20px;
     font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    padding: 20px;
   }
   .card {
-    width: 100%;
-    max-width: 480px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px 28px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    width: 100%; max-width: 520px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px 26px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
   }
-  .logo { font-size: 44px; line-height: 1; margin-bottom: 16px; }
-  h1 { margin: 0 0 6px; font-size: 21px; font-weight: 650; letter-spacing: -.02em; }
-  .sub { margin: 0 0 24px; color: var(--dim); font-size: 13.5px; }
+  .head { text-align: center; margin-bottom: 22px; }
+  .logo { font-size: 40px; line-height: 1; margin-bottom: 12px; }
+  h1 { margin: 0 0 5px; font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
+  .sub { margin: 0; color: var(--dim); font-size: 13px; }
+
   .status {
-    display: flex; align-items: center; justify-content: center; gap: 9px;
-    padding: 11px 16px; margin-bottom: 20px;
-    border-radius: 10px;
-    background: rgba(77,124,255,.1);
-    border: 1px solid rgba(77,124,255,.25);
+    display: flex; align-items: center; gap: 9px;
+    padding: 11px 14px; margin-bottom: 18px; border-radius: 10px;
+    background: rgba(77,124,255,.1); border: 1px solid rgba(77,124,255,.25);
     font-size: 13.5px; font-weight: 550;
   }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent);
-    animation: pulse 1.4s ease-in-out infinite;
-    flex: none;
-  }
+  .status.ok { background: rgba(46,204,113,.1); border-color: rgba(46,204,113,.3); }
+  .status.bad { background: rgba(231,76,60,.1); border-color: rgba(231,76,60,.3); }
+  .status.warn { background: rgba(243,156,18,.1); border-color: rgba(243,156,18,.3); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
   .dot.ok { background: var(--ok); animation: none; }
   .dot.bad { background: var(--bad); animation: none; }
+  .dot.warn { background: var(--warn); animation: none; }
   @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+
   .btn {
-    display: block; width: 100%;
-    padding: 13px 20px;
-    background: var(--accent); color: #fff;
-    border: none; border-radius: 10px;
-    font: inherit; font-weight: 600; font-size: 14.5px;
-    text-decoration: none; cursor: pointer;
-    transition: filter .15s, transform .1s;
+    display: block; width: 100%; padding: 14px 20px; margin-bottom: 10px;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    font: inherit; font-weight: 650; font-size: 15px; text-decoration: none;
+    text-align: center; cursor: pointer; transition: filter .15s, transform .1s;
   }
   .btn:hover { filter: brightness(1.1); }
   .btn:active { transform: scale(.985); }
   .btn[hidden] { display: none; }
-  .meta {
-    margin-top: 22px; padding-top: 18px;
-    border-top: 1px solid var(--border);
-    font-size: 11.5px; color: var(--dim);
-    word-break: break-all; line-height: 1.7;
+  .btn.ghost {
+    background: transparent; color: var(--fg);
+    border: 1px solid var(--border); font-weight: 550; font-size: 13.5px;
+    padding: 10px 16px;
   }
-  .meta code { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; opacity: .8; }
-  .hint { margin-top: 14px; font-size: 12px; color: var(--dim); }
+
+  .box {
+    margin-top: 18px; padding: 14px; border-radius: 10px;
+    background: rgba(127,127,127,.06); border: 1px solid var(--border);
+    font-size: 12px; line-height: 1.75; color: var(--dim);
+  }
+  .box.hidden { display: none; }
+  .box b { color: var(--fg); font-weight: 600; }
+  .urlbox {
+    display: block; width: 100%; margin-top: 8px; padding: 9px 11px;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 7px;
+    font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10.5px;
+    word-break: break-all; resize: none; line-height: 1.5;
+  }
+  .diag { margin-top: 16px; font-size: 11.5px; color: var(--dim); }
+  .diag summary { cursor: pointer; user-select: none; }
+  .diag pre {
+    margin: 8px 0 0; padding: 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px;
+    font-size: 10.5px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+  }
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="logo">ğŸ§ </div>
-  <h1>DeepSeek Harness</h1>
-  <p class="sub">Uzak eriÅŸim kÃ¶prÃ¼sÃ¼</p>
+  <div class="head">
+    <div class="logo">ğŸ§ </div>
+    <h1>DeepSeek Harness</h1>
+    <p class="sub">Uzak eriÅŸim</p>
+  </div>
 
-  <div class="status">
+  <div class="status" id="status">
     <span class="dot" id="dot"></span>
     <span id="msg">TÃ¼nel aranÄ±yorâ€¦</span>
   </div>
 
   <a class="btn" id="go" href="#" hidden>Siteye Gir â†’</a>
+  <button class="btn ghost" id="auto" hidden type="button">Otomatik yÃ¶nlendir</button>
 
-  <div class="meta">
-    <div id="target">Hedef yÃ¼kleniyorâ€¦</div>
-    <div class="hint" id="hint"></div>
+  <div class="box hidden" id="manual">
+    <b>Otomatik yÃ¶nlendirme Ã§alÄ±ÅŸmadÄ±ysa</b><br>
+    AÅŸaÄŸÄ±daki adresi kopyalayÄ±p tarayÄ±cÄ±nÄ±n adres Ã§ubuÄŸuna yapÄ±ÅŸtÄ±r:
+    <textarea class="urlbox" id="url" readonly rows="3"></textarea>
   </div>
+
+  <details class="diag">
+    <summary>TeÅŸhis bilgisi</summary>
+    <pre id="diag">yÃ¼kleniyorâ€¦</pre>
+  </details>
 </div>
 
 <script>
-// TÃ¼nel adresi buradan okunur. Otomatik gÃ¼ncellenir.
-const CONFIG_URL = "config.json";
-const FALLBACK = null;
+(function () {
+  "use strict";
 
-let tunnelUrl = null;
-let token = null;
-
-function setStatus(kind, text) {
-  const dot = document.getElementById("dot");
-  dot.className = "dot " + kind;
-  document.getElementById("msg").textContent = text;
-}
-
-function showTarget(u) {
-  const el = document.getElementById("target");
-  const t = document.getElementById("hint");
-  if (!u) {
-    el.textContent = "TÃ¼nel adresi bulunamadÄ±.";
-    t.textContent = "";
-    return;
-  }
-  try {
-    const url = new URL(u);
-    el.innerHTML = "Hedef: <code>" + url.host + "</code>";
-    t.textContent = url.searchParams.get("token")
-      ? "Kimlik doÄŸrulama hazÄ±r â€” tek tÄ±kla giriÅŸ yapÄ±lÄ±r."
-      : "Bu adres oturum anahtarÄ± iÃ§ermiyor; sayfa aÃ§Ä±lÄ±nca anahtarÄ± girmen istenebilir.";
-  } catch {
-    el.textContent = u;
-    t.textContent = "";
-  }
-}
-
-async function init() {
-  let cfg = null;
-
-  // 1) config.json (Pages'e yazÄ±lmÄ±ÅŸ gÃ¼ncel tÃ¼nel)
-  try {
-    const res = await fetch(CONFIG_URL + "?t=" + Date.now(), { cache: "no-store" });
-    if (res.ok) cfg = await res.json();
-  } catch {}
-
-  // 2) fallback
-  if (!cfg && FALLBACK) cfg = FALLBACK;
-
-  if (!cfg || !cfg.url) {
-    setStatus("bad", "TÃ¼nel kapalÄ±");
-    showTarget(null);
-    document.getElementById("hint").textContent =
-      "MasaÃ¼stÃ¼ uygulamasÄ± kapalÄ± ya da tÃ¼nel baÅŸlatÄ±lmadÄ±. UygulamayÄ± aÃ§, kÃ¶prÃ¼ kendini gÃ¼nceller.";
-    return;
+  var CONFIG_URL = "config.json";
+  var log = [];
+  function trace(s) {
+    log.push(new Date().toISOString().slice(11, 19) + "  " + s);
+    var d = document.getElementById("diag");
+    if (d) d.textContent = log.join("\n");
   }
 
-  tunnelUrl = cfg.url;
+  function setStatus(kind, text) {
+    var st = document.getElementById("status");
+    st.className = "status " + (kind || "");
+    document.getElementById("dot").className = "dot " + (kind || "");
+    document.getElementById("msg").textContent = text;
+  }
 
-  // GÃ¼ncellik kontrolÃ¼
-  if (cfg.updated) {
-    const ageMin = (Date.now() - new Date(cfg.updated).getTime()) / 60000;
-    if (ageMin > 120) {
-      setStatus("bad", "TÃ¼nel eski gÃ¶rÃ¼nÃ¼yor");
-    } else {
-      setStatus("ok", "TÃ¼nel hazÄ±r");
-    }
+  trace("sayfa yuklendi: " + location.href);
+
+  function showManual(u) {
+    document.getElementById("manual").classList.remove("hidden");
+    document.getElementById("url").value = u;
+  }
+
+  // config.json oku - cache'i kesinlikle atla
+  function loadConfig() {
+    var url = CONFIG_URL + "?_=" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    trace("config istegi: " + url);
+    return fetch(url, { cache: "no-store", headers: { "Cache-Control": "no-cache" } })
+      .then(function (res) {
+        trace("config yaniti: HTTP " + res.status);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (cfg) {
+        trace("config alindi: " + JSON.stringify(cfg).slice(0, 160));
+        return cfg;
+      });
+  }
+
+  function main() {
+    setStatus("", "TÃ¼nel aranÄ±yorâ€¦");
+    trace("tarayici: " + navigator.userAgent.slice(0, 80));
+
+    loadConfig()
+      .then(function (cfg) {
+        if (!cfg || !cfg.url) {
+          setStatus("bad", "TÃ¼nel kapalÄ±");
+          trace("HATA: config.json icinde url yok");
+          return;
+        }
+
+        var target = cfg.url;
+        trace("hedef: " + target.slice(0, 90));
+
+        var ageMin = cfg.updated
+          ? (Date.now() - new Date(cfg.updated).getTime()) / 60000
+          : 0;
+        trace("config yasi: " + ageMin.toFixed(1) + " dk");
+
+        if (ageMin > 120) {
+          setStatus("warn", "TÃ¼nel adresi eski (" + Math.round(ageMin) + " dk)");
+          trace("UYARI: config 2 saatten eski");
+        } else {
+          setStatus("ok", "TÃ¼nel hazÄ±r");
+        }
+
+        var go = document.getElementById("go");
+        go.href = target;
+        go.hidden = false;
+        showManual(target);
+
+        // Otomatik yonlendirme
+        if (cfg.auto !== false) {
+          var btn = document.getElementById("auto");
+          btn.hidden = false;
+          btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
+          setStatus("ok", "YÃ¶nlendiriliyorâ€¦");
+          trace("location.replace cagriliyor");
+          setTimeout(function () {
+            try {
+              location.replace(target);
+              trace("location.replace calisti");
+            } catch (e) {
+              trace("replace HATA: " + e.message);
+              setStatus("warn", "YÃ¶nlendirme engellendi");
+            }
+          }, 400);
+        }
+      })
+      .catch(function (e) {
+        setStatus("bad", "config.json okunamadÄ±");
+        trace("HATA: " + e.message);
+      });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", main);
   } else {
-    setStatus("ok", "TÃ¼nel hazÄ±r");
+    main();
   }
-
-  const go = document.getElementById("go");
-  go.href = tunnelUrl;
-  go.hidden = false;
-
-  // Otomatik yÃ¶nlendirme â€” istediÄŸin "direkt giriÅŸ" davranÄ±ÅŸÄ±
-  if (cfg.auto !== false) {
-    setStatus("ok", "YÃ¶nlendiriliyorâ€¦");
-    setTimeout(() => { location.replace(tunnelUrl); }, 220);
-  } else {
-    showTarget(tunnelUrl);
-  }
-}
-
-init();
+})();
 </script>
 </body>
 </html>
