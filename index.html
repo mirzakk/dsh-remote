@@ -204,6 +204,17 @@
           if (status === 401) {
             setStatus("warn", "TÃ¼nel canlÄ±, token geÃ§ersiz");
             trace("token bayat â€” Pages guncellenmemis");
+            document.getElementById("manual").classList.add("hidden");
+            document.getElementById("url").value = target;
+
+            // 401: token bayat. Sayfayi yenile -> yeni config gelsin.
+            var box = document.getElementById("manual");
+            box.classList.remove("hidden");
+            box.innerHTML =
+              "<b>Oturum anahtarÄ± geÃ§ersiz.</b><br>" +
+              "Uygulama yeniden baÅŸlamÄ±ÅŸ olabilir. " +
+              '<a href="" style="color:var(--accent)">SayfayÄ± yenile</a> â€” ' +
+              "yeni anahtar otomatik gelir.";
           } else if (ageMin > 120) {
             setStatus("warn", "TÃ¼nel canlÄ± (adres " + Math.round(ageMin) + " dk Ã¶nce gÃ¼ncellendi)");
           } else {
