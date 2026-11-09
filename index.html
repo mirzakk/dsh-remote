@@ -175,35 +175,64 @@
           : 0;
         trace("config yasi: " + ageMin.toFixed(1) + " dk");
 
-        if (ageMin > 120) {
-          setStatus("warn", "TÃ¼nel adresi eski (" + Math.round(ageMin) + " dk)");
-          trace("UYARI: config 2 saatten eski");
-        } else {
-          setStatus("ok", "TÃ¼nel hazÄ±r");
-        }
+        // CANLI KONTROL: tunel gercekten ayakta mi?
+        var probe = fetch(target, { method: "GET", redirect: "manual", cache: "no-store" })
+          .then(function (r) {
+            // 303 = token kabul edildi (tunel canli)
+            // 401 = tunel canli, token gecersiz
+            // 5xx = tunel var ama origin yok
+            trace("tunel probu: HTTP " + r.status);
+            return r.status;
+          })
+          .catch(function (e) {
+            trace("tunel probu HATA: " + e.message);
+            return 0;
+          });
 
-        var go = document.getElementById("go");
-        go.href = target;
-        go.hidden = false;
-        showManual(target);
+        return probe.then(function (status) {
+          var alive = status === 303 || status === 200 || status === 401;
 
-        // Otomatik yonlendirme
-        if (cfg.auto !== false) {
-          var btn = document.getElementById("auto");
-          btn.hidden = false;
-          btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
-          setStatus("ok", "YÃ¶nlendiriliyorâ€¦");
-          trace("location.replace cagriliyor");
-          setTimeout(function () {
-            try {
-              location.replace(target);
-              trace("location.replace calisti");
-            } catch (e) {
-              trace("replace HATA: " + e.message);
-              setStatus("warn", "YÃ¶nlendirme engellendi");
-            }
-          }, 400);
-        }
+          if (!alive) {
+            setStatus("bad", "TÃ¼nel kapalÄ±");
+            trace("tunel yanit vermiyor (status " + status + ")");
+            showManual(target);
+            document.getElementById("go").href = target;
+            document.getElementById("go").hidden = false;
+            return;
+          }
+
+          if (status === 401) {
+            setStatus("warn", "TÃ¼nel canlÄ±, token geÃ§ersiz");
+            trace("token bayat â€” Pages guncellenmemis");
+          } else if (ageMin > 120) {
+            setStatus("warn", "TÃ¼nel canlÄ± (adres " + Math.round(ageMin) + " dk Ã¶nce gÃ¼ncellendi)");
+          } else {
+            setStatus("ok", "TÃ¼nel hazÄ±r");
+          }
+
+          var go = document.getElementById("go");
+          go.href = target;
+          go.hidden = false;
+          showManual(target);
+
+          // Otomatik yonlendirme
+          if (cfg.auto !== false && status !== 401) {
+            var btn = document.getElementById("auto");
+            btn.hidden = false;
+            btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
+            setStatus("ok", "YÃ¶nlendiriliyorâ€¦");
+            trace("location.replace cagriliyor");
+            setTimeout(function () {
+              try {
+                location.replace(target);
+                trace("location.replace calisti");
+              } catch (e) {
+                trace("replace HATA: " + e.message);
+                setStatus("warn", "YÃ¶nlendirme engellendi");
+              }
+            }, 400);
+          }
+        });
       })
       .catch(function (e) {
         setStatus("bad", "config.json okunamadÄ±");
