@@ -413,6 +413,40 @@
     } catch (e) {}
   }
 
+  // --- Realtime ayna: dosya degisince listeyi tazele ---
+  var MIRROR_ENDPOINT = "";
+
+  async function loadMirrorEndpoint() {
+    try {
+      var r = await fetch("mirror.json?_=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      var j = await r.json();
+      if (j && j.endpoint) MIRROR_ENDPOINT = j.endpoint;
+    } catch (e) {}
+  }
+
+  function startMirror() {
+    if (!MIRROR_ENDPOINT) return;
+    try {
+      var es = new EventSource(MIRROR_ENDPOINT + "/events");
+      var t = null;
+      var kick = function () {
+        if (t) clearTimeout(t);
+        t = setTimeout(function () {
+          // Sohbet paneli aciksa yenile
+          if (!$("sessions").classList.contains("hidden")) refreshSessions();
+        }, 500);
+      };
+      es.addEventListener("workspace", kick);
+      es.addEventListener("sessions", kick);
+      es.onerror = function () {
+        // Baglanti koptu; 10 sn sonra tekrar dene
+        try { es.close(); } catch (e) {}
+        setTimeout(startMirror, 10000);
+      };
+    } catch (e) {}
+  }
+
   function sessRow(title, sub, actions) {
     var row = document.createElement("div");
     row.className = "sess-item";
@@ -553,6 +587,7 @@
       wireSessions();
       loadEndpoint();
       loadDeleteEndpoint();
+      loadMirrorEndpoint().then(startMirror);
       start();
     });
   } else {
@@ -560,6 +595,7 @@
     wireSessions();
     loadEndpoint();
     loadDeleteEndpoint();
+    loadMirrorEndpoint().then(startMirror);
     start();
   }
 })();
