@@ -67,10 +67,27 @@
   .btn[hidden] { display: none; }
 
   .err { color: var(--bad); font-size: 12.5px; margin-top: 10px; min-height: 1.2em; }
+  .okmsg { color: var(--ok); font-size: 12.5px; margin-top: 10px; min-height: 1.2em; }
   .remember { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; font-size: 12.5px; color: var(--dim); }
   .remember input { accent-color: var(--accent); }
   .foot { margin-top: 18px; font-size: 11.5px; color: var(--dim); text-align: center; line-height: 1.7; }
   .foot code { font-family: ui-monospace, monospace; font-size: 10.5px; }
+
+  /* parola degistirme */
+  .linkbtn {
+    display: block; width: 100%; margin-top: 14px; padding: 8px;
+    background: none; border: none; color: var(--dim);
+    font: inherit; font-size: 12.5px; text-decoration: underline;
+    cursor: pointer; text-underline-offset: 3px;
+  }
+  .linkbtn:hover { color: var(--accent); }
+  .change { margin-top: 18px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .change.hidden { display: none; }
+  .change h2 { margin: 0 0 16px; font-size: 15px; font-weight: 650; }
+  .change .lock { display: none; }
+  .change input[type=password] { margin-bottom: 12px; }
+  .change .btn { margin-top: 6px; }
+  .hint { color: var(--dim); font-weight: 400; }
 </style>
 </head>
 <body>
@@ -96,6 +113,27 @@
     <button class="btn" id="submit" type="submit">Giriş</button>
     <div class="err" id="err"></div>
   </form>
+
+  <button class="linkbtn" id="toggle-change" type="button">Parolayı değiştir</button>
+
+  <div class="change hidden" id="change">
+    <div class="lock"></div>
+    <h2>Parola değiştir</h2>
+    <form id="change-form" autocomplete="off">
+      <label for="oldpw">Mevcut parola</label>
+      <input id="oldpw" type="password" spellcheck="false" autocomplete="current-password" placeholder="••••••••">
+
+      <label for="newpw">Yeni parola <span class="hint">(en az 6 karakter)</span></label>
+      <input id="newpw" type="password" spellcheck="false" autocomplete="new-password" placeholder="••••••••">
+
+      <label for="newpw2">Yeni parola (tekrar)</label>
+      <input id="newpw2" type="password" spellcheck="false" autocomplete="new-password" placeholder="••••••••">
+
+      <button class="btn" id="change-btn" type="submit">Değiştir</button>
+      <div class="err" id="change-err"></div>
+    </form>
+    <button class="linkbtn" id="cancel-change" type="button">Vazgeç</button>
+  </div>
 
   <div class="foot" id="foot">
     Tünel adresi şifreli saklanır. Parola olmadan okunamaz.
@@ -222,9 +260,98 @@
     });
   }
 
+  // ---- Parola degistirme -------------------------------------------------
+
+  // Parola degistirme servisi: passwd.json'dan okunur (tunel adresi degisebilir)
+  var CHANGE_ENDPOINT = "";
+
+  async function loadEndpoint() {
+    try {
+      var r = await fetch("passwd.json?_=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      var j = await r.json();
+      if (j && j.endpoint) CHANGE_ENDPOINT = j.endpoint;
+    } catch (e) {
+      /* servis kapali olabilir - sessiz gec */
+    }
+  }
+
+  function showChange(on) {
+    $("change").classList.toggle("hidden", !on);
+    $("toggle-change").style.display = on ? "none" : "block";
+    if (on) {
+      $("change-err").textContent = "";
+      $("oldpw").focus();
+    }
+  }
+
+  function wireChange() {
+    $("toggle-change").addEventListener("click", function () { showChange(true); });
+    $("cancel-change").addEventListener("click", function () {
+      showChange(false);
+      $("oldpw").value = $("newpw").value = $("newpw2").value = "";
+      $("change-err").textContent = "";
+    });
+
+    $("change-form").addEventListener("submit", async function (ev) {
+      ev.preventDefault();
+      var err = $("change-err");
+      err.textContent = "";
+
+      var oldPw = $("oldpw").value;
+      var a = $("newpw").value;
+      var b = $("newpw2").value;
+
+      if (!oldPw) { err.textContent = "Mevcut parolayı gir."; return; }
+      if (a.length < 6) { err.textContent = "Yeni parola en az 6 karakter olmalı."; return; }
+      if (a !== b) { err.textContent = "Yeni parolalar eşleşmiyor."; return; }
+      if (a === oldPw) { err.textContent = "Yeni parola mevcutla aynı."; return; }
+
+      if (!CHANGE_ENDPOINT) {
+        err.textContent = "Parola servisi yapılandırılmamış. Yerel sunucuyu başlat.";
+        return;
+      }
+
+      $("change-btn").disabled = true;
+      $("change-btn").textContent = "Değiştiriliyor…";
+
+      try {
+        var res = await fetch(CHANGE_ENDPOINT + "/change", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ oldPassword: oldPw, newPassword: a }),
+        });
+        var out = await res.json().catch(function () { return {}; });
+
+        if (!res.ok) {
+          err.textContent = out.error || ("Hata: HTTP " + res.status);
+          return;
+        }
+
+        // Basarili: kayitli parolayi guncelle
+        try { localStorage.setItem(STORE_KEY, a); } catch (e) {}
+
+        $("change-form").innerHTML =
+          '<div class="okmsg">Parola değiştirildi. Yeni parolayı kullan.</div>';
+        setTimeout(function () { showChange(false); }, 2200);
+      } catch (e) {
+        err.textContent = "Servise ulaşılamadı: " + e.message;
+      } finally {
+        $("change-btn").disabled = false;
+        $("change-btn").textContent = "Değiştir";
+      }
+    });
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
+    document.addEventListener("DOMContentLoaded", function () {
+      wireChange();
+      loadEndpoint();
+      start();
+    });
   } else {
+    wireChange();
+    loadEndpoint();
     start();
   }
 })();
