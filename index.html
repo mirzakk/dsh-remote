@@ -175,75 +175,41 @@
           : 0;
         trace("config yasi: " + ageMin.toFixed(1) + " dk");
 
-        // CANLI KONTROL: tunel gercekten ayakta mi?
-        var probe = fetch(target, { method: "GET", redirect: "manual", cache: "no-store" })
-          .then(function (r) {
-            // 303 = token kabul edildi (tunel canli)
-            // 401 = tunel canli, token gecersiz
-            // 5xx = tunel var ama origin yok
-            trace("tunel probu: HTTP " + r.status);
-            return r.status;
-          })
-          .catch(function (e) {
-            trace("tunel probu HATA: " + e.message);
-            return 0;
-          });
+        // NOT: Tunel icin on-kontrol (probe) YAPILMAZ.
+        // Pages (github.io) -> tunnel (trycloudflare.com) arasi fetch CORS'a takilir
+        // ve basarisiz probe yonlendirmeyi iptal ederdi. Navigasyon CORS'a tabi degil,
+        // bu yuzden dogrudan yonlendiriyoruz.
 
-        return probe.then(function (status) {
-          var alive = status === 303 || status === 200 || status === 401;
+        if (ageMin > 120) {
+          trace("UYARI: config " + Math.round(ageMin) + " dk once guncellenmis");
+        }
 
-          if (!alive) {
-            setStatus("bad", "Tünel kapalı");
-            trace("tunel yanit vermiyor (status " + status + ")");
-            showManual(target);
-            document.getElementById("go").href = target;
-            document.getElementById("go").hidden = false;
-            return;
-          }
+        var go = document.getElementById("go");
+        go.href = target;
+        go.hidden = false;
+        showManual(target);
 
-          if (status === 401) {
-            setStatus("warn", "Tünel canlı, token geçersiz");
-            trace("token bayat — Pages guncellenmemis");
-            document.getElementById("manual").classList.add("hidden");
-            document.getElementById("url").value = target;
+        var btn = document.getElementById("auto");
+        btn.hidden = false;
+        btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
 
-            // 401: token bayat. Sayfayi yenile -> yeni config gelsin.
-            var box = document.getElementById("manual");
-            box.classList.remove("hidden");
-            box.innerHTML =
-              "<b>Oturum anahtarı geçersiz.</b><br>" +
-              "Uygulama yeniden başlamış olabilir. " +
-              '<a href="" style="color:var(--accent)">Sayfayı yenile</a> — ' +
-              "yeni anahtar otomatik gelir.";
-          } else if (ageMin > 120) {
-            setStatus("warn", "Tünel canlı (adres " + Math.round(ageMin) + " dk önce güncellendi)");
-          } else {
-            setStatus("ok", "Tünel hazır");
-          }
-
-          var go = document.getElementById("go");
-          go.href = target;
-          go.hidden = false;
-          showManual(target);
-
-          // Otomatik yonlendirme
-          if (cfg.auto !== false && status !== 401) {
-            var btn = document.getElementById("auto");
-            btn.hidden = false;
-            btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
-            setStatus("ok", "Yönlendiriliyor…");
-            trace("location.replace cagriliyor");
-            setTimeout(function () {
-              try {
-                location.replace(target);
-                trace("location.replace calisti");
-              } catch (e) {
-                trace("replace HATA: " + e.message);
-                setStatus("warn", "Yönlendirme engellendi");
-              }
-            }, 400);
-          }
-        });
+        // Otomatik yonlendirme - her kosulda
+        if (cfg.auto !== false) {
+          setStatus("ok", "Yönlendiriliyor…");
+          trace("location.replace cagriliyor");
+          setTimeout(function () {
+            try {
+              location.replace(target);
+              trace("location.replace calisti");
+            } catch (e) {
+              trace("replace HATA: " + e.message);
+              setStatus("warn", "Yönlendirme engellendi — butonu kullan");
+              btn.classList.remove("hidden");
+            }
+          }, 250);
+        } else {
+          setStatus("ok", "Tünel hazır");
+        }
       })
       .catch(function (e) {
         setStatus("bad", "config.json okunamadı");
