@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>DeepSeek Harness</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ğŸ§ </text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
 <style>
   :root {
     color-scheme: light dark;
@@ -88,28 +88,28 @@
 <body>
 <div class="card">
   <div class="head">
-    <div class="logo">ğŸ§ </div>
+    <div class="logo">🧠</div>
     <h1>DeepSeek Harness</h1>
-    <p class="sub">Uzak eriÅŸim</p>
+    <p class="sub">Uzak erişim</p>
   </div>
 
   <div class="status" id="status">
     <span class="dot" id="dot"></span>
-    <span id="msg">TÃ¼nel aranÄ±yorâ€¦</span>
+    <span id="msg">Tünel aranıyor…</span>
   </div>
 
-  <a class="btn" id="go" href="#" hidden>Siteye Gir â†’</a>
-  <button class="btn ghost" id="auto" hidden type="button">Otomatik yÃ¶nlendir</button>
+  <a class="btn" id="go" href="#" hidden>Siteye Gir →</a>
+  <button class="btn ghost" id="auto" hidden type="button">Otomatik yönlendir</button>
 
   <div class="box hidden" id="manual">
-    <b>Otomatik yÃ¶nlendirme Ã§alÄ±ÅŸmadÄ±ysa</b><br>
-    AÅŸaÄŸÄ±daki adresi kopyalayÄ±p tarayÄ±cÄ±nÄ±n adres Ã§ubuÄŸuna yapÄ±ÅŸtÄ±r:
+    <b>Otomatik yönlendirme çalışmadıysa</b><br>
+    Aşağıdaki adresi kopyalayıp tarayıcının adres çubuğuna yapıştır:
     <textarea class="urlbox" id="url" readonly rows="3"></textarea>
   </div>
 
   <details class="diag">
-    <summary>TeÅŸhis bilgisi</summary>
-    <pre id="diag">yÃ¼kleniyorâ€¦</pre>
+    <summary>Teşhis bilgisi</summary>
+    <pre id="diag">yükleniyor…</pre>
   </details>
 </div>
 
@@ -156,13 +156,13 @@
   }
 
   function main() {
-    setStatus("", "TÃ¼nel aranÄ±yorâ€¦");
+    setStatus("", "Tünel aranıyor…");
     trace("tarayici: " + navigator.userAgent.slice(0, 80));
 
     loadConfig()
       .then(function (cfg) {
         if (!cfg || !cfg.url) {
-          setStatus("bad", "TÃ¼nel kapalÄ±");
+          setStatus("bad", "Tünel kapalı");
           trace("HATA: config.json icinde url yok");
           return;
         }
@@ -193,7 +193,7 @@
           var alive = status === 303 || status === 200 || status === 401;
 
           if (!alive) {
-            setStatus("bad", "TÃ¼nel kapalÄ±");
+            setStatus("bad", "Tünel kapalı");
             trace("tunel yanit vermiyor (status " + status + ")");
             showManual(target);
             document.getElementById("go").href = target;
@@ -202,8 +202,8 @@
           }
 
           if (status === 401) {
-            setStatus("warn", "TÃ¼nel canlÄ±, token geÃ§ersiz");
-            trace("token bayat â€” Pages guncellenmemis");
+            setStatus("warn", "Tünel canlı, token geçersiz");
+            trace("token bayat — Pages guncellenmemis");
             document.getElementById("manual").classList.add("hidden");
             document.getElementById("url").value = target;
 
@@ -211,14 +211,14 @@
             var box = document.getElementById("manual");
             box.classList.remove("hidden");
             box.innerHTML =
-              "<b>Oturum anahtarÄ± geÃ§ersiz.</b><br>" +
-              "Uygulama yeniden baÅŸlamÄ±ÅŸ olabilir. " +
-              '<a href="" style="color:var(--accent)">SayfayÄ± yenile</a> â€” ' +
+              "<b>Oturum anahtarı geçersiz.</b><br>" +
+              "Uygulama yeniden başlamış olabilir. " +
+              '<a href="" style="color:var(--accent)">Sayfayı yenile</a> — ' +
               "yeni anahtar otomatik gelir.";
           } else if (ageMin > 120) {
-            setStatus("warn", "TÃ¼nel canlÄ± (adres " + Math.round(ageMin) + " dk Ã¶nce gÃ¼ncellendi)");
+            setStatus("warn", "Tünel canlı (adres " + Math.round(ageMin) + " dk önce güncellendi)");
           } else {
-            setStatus("ok", "TÃ¼nel hazÄ±r");
+            setStatus("ok", "Tünel hazır");
           }
 
           var go = document.getElementById("go");
@@ -231,7 +231,7 @@
             var btn = document.getElementById("auto");
             btn.hidden = false;
             btn.onclick = function () { trace("buton: yonlendiriliyor"); location.href = target; };
-            setStatus("ok", "YÃ¶nlendiriliyorâ€¦");
+            setStatus("ok", "Yönlendiriliyor…");
             trace("location.replace cagriliyor");
             setTimeout(function () {
               try {
@@ -239,14 +239,14 @@
                 trace("location.replace calisti");
               } catch (e) {
                 trace("replace HATA: " + e.message);
-                setStatus("warn", "YÃ¶nlendirme engellendi");
+                setStatus("warn", "Yönlendirme engellendi");
               }
             }, 400);
           }
         });
       })
       .catch(function (e) {
-        setStatus("bad", "config.json okunamadÄ±");
+        setStatus("bad", "config.json okunamadı");
         trace("HATA: " + e.message);
       });
   }
