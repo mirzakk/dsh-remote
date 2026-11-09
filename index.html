@@ -90,6 +90,32 @@
   .hint { color: var(--dim); font-weight: 400; }
   .btn.enter { margin-top: 4px; font-size: 15.5px; padding: 15px 20px; }
   .btn.enter[hidden] { display: none; }
+
+  /* sohbet yonetimi */
+  .sess-list { margin: 10px 0; max-height: 320px; overflow-y: auto; }
+  .sess-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 11px; margin-bottom: 6px;
+    background: var(--field); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px;
+  }
+  .sess-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sess-item .d { color: var(--dim); font-size: 11px; flex: none; }
+  .sess-item .x {
+    flex: none; padding: 4px 9px; font-size: 12px;
+    background: rgba(231,76,60,.14); color: var(--bad);
+    border: 1px solid rgba(231,76,60,.35); border-radius: 6px;
+    cursor: pointer; font-family: inherit;
+  }
+  .sess-item .x:hover { background: rgba(231,76,60,.25); }
+  .sess-item .r {
+    flex: none; padding: 4px 9px; font-size: 12px;
+    background: rgba(46,204,113,.14); color: var(--ok);
+    border: 1px solid rgba(46,204,113,.35); border-radius: 6px;
+    cursor: pointer; font-family: inherit;
+  }
+  .sess-item .r:hover { background: rgba(46,204,113,.25); }
+  .empty { color: var(--dim); font-size: 12.5px; padding: 10px 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -117,7 +143,18 @@
   </form>
 
   <button class="linkbtn" id="toggle-change" type="button">Parolayı değiştir</button>
+  <button class="linkbtn" id="toggle-sessions" type="button">Sohbetleri yönet</button>
   <a class="btn enter" id="enter" href="#" hidden>Siteye Gir →</a>
+
+  <div class="change hidden" id="sessions">
+    <h2>Sohbetler</h2>
+    <div class="sess-list" id="sess-list">Yükleniyor…</div>
+    <div class="trash-head" id="trash-head" hidden>
+      <h2 style="margin-top:18px">Çöp kutusu</h2>
+      <div class="sess-list" id="trash-list"></div>
+    </div>
+    <button class="linkbtn" id="close-sessions" type="button">Kapat</button>
+  </div>
 
   <div class="change hidden" id="change">
     <div class="lock"></div>
@@ -363,15 +400,166 @@
     });
   }
 
+  // ---- Sohbet yonetimi ---------------------------------------------------
+
+  var DELETE_ENDPOINT = "";
+
+  async function loadDeleteEndpoint() {
+    try {
+      var r = await fetch("delete.json?_=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      var j = await r.json();
+      if (j && j.endpoint) DELETE_ENDPOINT = j.endpoint;
+    } catch (e) {}
+  }
+
+  function sessRow(title, sub, actions) {
+    var row = document.createElement("div");
+    row.className = "sess-item";
+    var t = document.createElement("span");
+    t.className = "t";
+    t.textContent = title;
+    row.appendChild(t);
+    if (sub) {
+      var d = document.createElement("span");
+      d.className = "d";
+      d.textContent = sub;
+      row.appendChild(d);
+    }
+    for (var i = 0; i < actions.length; i++) row.appendChild(actions[i]);
+    return row;
+  }
+
+  async function refreshSessions() {
+    var listEl = $("sess-list");
+    listEl.innerHTML = "Yükleniyor…";
+
+    if (!DELETE_ENDPOINT) {
+      listEl.innerHTML = '<div class="empty">Silme servisi kapalı.</div>';
+      return;
+    }
+
+    var data;
+    try {
+      var r = await fetch(DELETE_ENDPOINT + "/sessions?t=" + Date.now(), { cache: "no-store" });
+      data = await r.json();
+    } catch (e) {
+      listEl.innerHTML = '<div class="empty">Servise ulaşılamadı.</div>';
+      return;
+    }
+
+    listEl.innerHTML = "";
+    var items = (data && data.items) || [];
+    if (!items.length) {
+      listEl.innerHTML = '<div class="empty">Sohbet yok.</div>';
+    }
+
+    items.forEach(function (it) {
+      var del = document.createElement("button");
+      del.className = "x";
+      del.type = "button";
+      del.textContent = "Sil";
+      del.onclick = function () { doDelete(it, del); };
+
+      var when = it.updatedAt ? new Date(it.updatedAt).toLocaleString("tr-TR") : "";
+      listEl.appendChild(sessRow(it.title || it.sessionId.slice(0, 12), when, [del]));
+    });
+
+    // Cop kutusu
+    var trashData = { items: [] };
+    try {
+      var tr = await fetch(DELETE_ENDPOINT + "/trash?t=" + Date.now(), { cache: "no-store" });
+      trashData = await tr.json();
+    } catch (e) {}
+
+    var trashItems = (trashData && trashData.items) || [];
+    $("trash-head").hidden = trashItems.length === 0;
+    var tl = $("trash-list");
+    tl.innerHTML = "";
+    trashItems.forEach(function (it) {
+      var rest = document.createElement("button");
+      rest.className = "r";
+      rest.type = "button";
+      rest.textContent = "Geri al";
+      rest.onclick = function () { doRestore(it, rest); };
+      var when = it.deletedAt ? new Date(it.deletedAt).toLocaleString("tr-TR") : "";
+      tl.appendChild(sessRow(it.sessionId.slice(0, 18) + "…", when, [rest]));
+    });
+  }
+
+  async function doDelete(it, btn) {
+    var name = it.title || it.sessionId;
+    if (!confirm('"' + name + '" silinsin mi?\n\nÇöp kutusuna taşınır, geri alabilirsin.')) return;
+
+    btn.disabled = true;
+    btn.textContent = "…";
+    try {
+      var r = await fetch(DELETE_ENDPOINT + "/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId: it.sessionId, confirm: true }),
+      });
+      var j = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        alert("Silinemedi: " + (j.error || r.status));
+        btn.disabled = false;
+        btn.textContent = "Sil";
+        return;
+      }
+      refreshSessions();
+    } catch (e) {
+      alert("Servise ulaşılamadı: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "Sil";
+    }
+  }
+
+  async function doRestore(it, btn) {
+    btn.disabled = true;
+    btn.textContent = "…";
+    try {
+      var r = await fetch(DELETE_ENDPOINT + "/restore", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trashId: it.trashId }),
+      });
+      if (!r.ok) {
+        var j = await r.json().catch(function () { return {}; });
+        alert("Geri alınamadı: " + (j.error || r.status));
+      }
+      refreshSessions();
+    } catch (e) {
+      alert("Servise ulaşılamadı: " + e.message);
+    }
+  }
+
+  function wireSessions() {
+    $("toggle-sessions").addEventListener("click", function () {
+      var box = $("sessions");
+      var show = box.classList.contains("hidden");
+      box.classList.toggle("hidden", !show);
+      $("toggle-sessions").style.display = show ? "none" : "block";
+      if (show) refreshSessions();
+    });
+    $("close-sessions").addEventListener("click", function () {
+      $("sessions").classList.add("hidden");
+      $("toggle-sessions").style.display = "block";
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       wireChange();
+      wireSessions();
       loadEndpoint();
+      loadDeleteEndpoint();
       start();
     });
   } else {
     wireChange();
+    wireSessions();
     loadEndpoint();
+    loadDeleteEndpoint();
     start();
   }
 })();
