@@ -88,6 +88,8 @@
   .change input[type=password] { margin-bottom: 12px; }
   .change .btn { margin-top: 6px; }
   .hint { color: var(--dim); font-weight: 400; }
+  .btn.enter { margin-top: 4px; font-size: 15.5px; padding: 15px 20px; }
+  .btn.enter[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -115,6 +117,7 @@
   </form>
 
   <button class="linkbtn" id="toggle-change" type="button">Parolayı değiştir</button>
+  <a class="btn enter" id="enter" href="#" hidden>Siteye Gir →</a>
 
   <div class="change hidden" id="change">
     <div class="lock"></div>
@@ -196,13 +199,27 @@
     setTimeout(function () { location.replace(target); }, 150);
   }
 
-  async function tryPassword(cfg, password) {
+  // Cozer, kaydeder, ama YONLENDIRMEZ. Butonu acar.
+  async function unlock(cfg, password) {
     var obj = await decrypt(cfg, password);
     if (!obj || !obj.url) throw new Error("boş yapı");
     if ($("remember").checked) {
       try { localStorage.setItem(STORE_KEY, password); } catch (e) {}
     }
-    go(obj.url);
+    return obj.url;
+  }
+
+  function showEnter(url) {
+    var b = $("enter");
+    b.href = url;
+    b.hidden = false;
+    b.onclick = function () { setStatus("ok", "Giriş yapılıyor…"); };
+    var f = $("form");
+    if (f) f.style.display = "none";
+    var tc = $("toggle-change");
+    if (tc) tc.style.display = "block";
+    $("foot").innerHTML = "Parola doğrulandı. Siteye girmek için butona bas.";
+    setStatus("ok", "Hazır");
   }
 
   async function start() {
@@ -217,23 +234,24 @@
       return;
     }
 
-    // Sifresiz (eski) format: dogrudan yonlendir
+    // Sifresiz (eski) format: dogrudan goster
     if (!cfg.ct) {
-      if (cfg.url) { go(cfg.url); return; }
+      if (cfg.url) { showEnter(cfg.url); return; }
       setStatus("bad", "Yapılandırma boş");
       return;
     }
 
     setStatus("", "Parola gerekli");
 
-    // Bu cihazda kayitli parola var mi?
+    // Bu cihazda kayitli parola var mi? Coz ama YONLENDIRME.
     var saved = null;
     try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
 
     if (saved) {
-      setStatus("", "Kayıtlı parola deneniyor…");
+      setStatus("", "Kayıtlı parola doğrulanıyor…");
       try {
-        await tryPassword(cfg, saved);
+        var savedUrl = await unlock(cfg, saved);
+        showEnter(savedUrl);
         return;
       } catch (e) {
         try { localStorage.removeItem(STORE_KEY); } catch (e2) {}
@@ -250,7 +268,9 @@
       $("err").textContent = "";
       setStatus("", "Çözülüyor…");
       try {
-        await tryPassword(cfg, pw);
+        var u = await unlock(cfg, pw);
+        $("submit").disabled = false;
+        showEnter(u);
       } catch (e) {
         setStatus("bad", "Parola yanlış");
         $("err").textContent = "Parola yanlış veya yapılandırma bozuk.";
