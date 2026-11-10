@@ -166,15 +166,16 @@
     if (msg) $("veilMsg").textContent = msg;
   }
 
-  function showApp(h) {
+  function showApp(h, target) {
     host = h;
     $("lock").style.display = "none";
     $("app").classList.add("on");
     var f = $("frame");
-    // ayni host ise iframe'i yeniden yukleme
+    // Ilk yuklemede token'li adres sart: DSH cerezi ancak token ile kurar.
+    var want = target || ("https://" + h + "/");
     var cur = "";
     try { cur = new URL(f.src).host; } catch (e) {}
-    if (cur !== h) f.src = "https://" + h + "/";
+    if (cur !== h || !f.src) f.src = want;
     hud("", "Bağlı");
     veil(false);
   }
@@ -186,7 +187,7 @@
       var obj = cfg.ct ? await decrypt(cfg, password) : cfg;
       var h = hostOf(obj.url);
       if (!h) return;
-      if (h !== host) { veil(true, "Yeni tünel adresi alındı"); showApp(h); }
+      if (h !== host) { veil(true, "Yeni tünel adresi alındı"); showApp(h, obj.url); }
     } catch (e) { /* parola henuz yok ya da ag hatasi */ }
   }
 
@@ -210,7 +211,7 @@
     var obj = cfg.ct ? await decrypt(cfg, pw) : cfg;
     if (!obj || !obj.url) throw new Error("yapılandırma boş");
     password = pw;
-    showApp(hostOf(obj.url));
+    showApp(hostOf(obj.url), obj.url);
   }
 
   async function boot() {
