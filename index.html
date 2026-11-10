@@ -1,152 +1,118 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DeepSeek Harness</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>DSH Remote</title>
 <style>
   :root {
-    color-scheme: light dark;
-    --bg: #0a0e17; --fg: #e8ecf3; --dim: #7a8699;
-    --accent: #4d7cff; --ok: #2ecc71; --bad: #e74c3c; --warn: #f39c12;
-    --card: #131a26; --border: #1f2937; --field: #0d131e;
-  }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#f7f9fc; --fg:#111827; --dim:#6b7280; --card:#fff; --border:#e5e7eb; --field:#f3f5f9; }
+    --bg: #0d1117; --panel: #161b22; --line: #2b3648; --text: #e8ecf3;
+    --muted: #93a1b5; --accent: #4c8dff; --bad: #d1464b; --ok: #3fb950;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
   body {
-    margin: 0; min-height: 100vh; display: grid; place-items: center;
-    background: var(--bg); color: var(--fg); padding: 20px;
-    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- kilit ekrani ---- */
+  #lock {
+    min-height: 100%; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
   }
   .card {
-    width: 100%; max-width: 460px; background: var(--card);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 30px 26px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    width: min(360px, 100%); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; padding: 26px 24px 20px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
   }
-  .head { text-align: center; margin-bottom: 22px; }
-  .logo { font-size: 40px; line-height: 1; margin-bottom: 12px; }
-  h1 { margin: 0 0 5px; font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
-  .sub { margin: 0; color: var(--dim); font-size: 13px; }
-
-  .status {
-    display: flex; align-items: center; gap: 9px;
-    padding: 11px 14px; margin-bottom: 18px; border-radius: 10px;
-    background: rgba(77,124,255,.1); border: 1px solid rgba(77,124,255,.25);
-    font-size: 13.5px; font-weight: 550;
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: linear-gradient(145deg, #4c8dff, #7b5cff);
+    display: grid; place-items: center; font-weight: 700; font-size: 15px; color: #fff;
   }
-  .status.ok { background: rgba(46,204,113,.1); border-color: rgba(46,204,113,.3); }
-  .status.bad { background: rgba(231,76,60,.1); border-color: rgba(231,76,60,.3); }
-  .status.warn { background: rgba(243,156,18,.1); border-color: rgba(243,156,18,.3); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
-  .dot.ok { background: var(--ok); animation: none; }
-  .dot.bad { background: var(--bad); animation: none; }
-  .dot.warn { background: var(--warn); animation: none; }
-  @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+  .brand h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
-  label { display: block; font-size: 12.5px; color: var(--dim); margin-bottom: 6px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
   input[type=password] {
-    width: 100%; padding: 12px 14px; margin-bottom: 12px;
-    background: var(--field); color: var(--fg);
-    border: 1px solid var(--border); border-radius: 9px;
-    font: inherit; font-size: 15px; letter-spacing: .1em;
+    width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: #0f1620; color: var(--text); font: inherit; outline: none;
   }
-  input[type=password]:focus { outline: none; border-color: var(--accent); }
-
-  .btn {
-    display: block; width: 100%; padding: 13px 20px;
-    background: var(--accent); color: #fff; border: none; border-radius: 10px;
-    font: inherit; font-weight: 650; font-size: 15px; cursor: pointer;
-    transition: filter .15s, transform .1s;
+  input[type=password]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(76,141,255,.18); }
+  .row { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; }
+  .row input[type=checkbox] { accent-color: var(--accent); }
+  .row span { font-size: 12px; color: var(--muted); }
+  button {
+    width: 100%; margin-top: 16px; padding: 11px 14px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
   }
-  .btn:hover { filter: brightness(1.1); }
-  .btn:active { transform: scale(.985); }
-  .btn:disabled { opacity: .55; cursor: default; transform: none; }
-  .btn[hidden] { display: none; }
+  button:disabled { opacity: .6; cursor: default; }
+  .err { min-height: 18px; margin-top: 10px; font-size: 12px; color: var(--bad); }
+  .foot { margin-top: 14px; font-size: 11px; color: #6b7889; text-align: center; }
 
-  .err { color: var(--bad); font-size: 12.5px; margin-top: 10px; min-height: 1.2em; }
-  .okmsg { color: var(--ok); font-size: 12.5px; margin-top: 10px; min-height: 1.2em; }
-  .remember { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; font-size: 12.5px; color: var(--dim); }
-  .remember input { accent-color: var(--accent); }
-  .foot { margin-top: 18px; font-size: 11.5px; color: var(--dim); text-align: center; line-height: 1.7; }
-  .foot code { font-family: ui-monospace, monospace; font-size: 10.5px; }
+  /* ---- uygulama ---- */
+  #app { position: fixed; inset: 0; display: none; background: var(--bg); }
+  #app.on { display: block; }
+  #frame { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
 
-  /* parola degistirme */
-  .linkbtn {
-    display: block; width: 100%; margin-top: 14px; padding: 8px;
-    background: none; border: none; color: var(--dim);
-    font: inherit; font-size: 12.5px; text-decoration: underline;
-    cursor: pointer; text-underline-offset: 3px;
-  }
-  .linkbtn:hover { color: var(--accent); }
-  .change { margin-top: 18px; padding-top: 20px; border-top: 1px solid var(--border); }
-  .change.hidden { display: none; }
-  .change h2 { margin: 0 0 16px; font-size: 15px; font-weight: 650; }
-  .change .lock { display: none; }
-  .change input[type=password] { margin-bottom: 12px; }
-  .change .btn { margin-top: 6px; }
-  .hint { color: var(--dim); font-weight: 400; }
-  .btn.enter { margin-top: 4px; font-size: 15.5px; padding: 15px 20px; }
-  .btn.enter[hidden] { display: none; }
-
-  /* sohbet yonetimi */
-  .sess-list { margin: 10px 0; max-height: 320px; overflow-y: auto; }
-  .sess-item {
+  #hud {
+    position: fixed; right: 12px; bottom: 12px; z-index: 5;
     display: flex; align-items: center; gap: 8px;
-    padding: 9px 11px; margin-bottom: 6px;
-    background: var(--field); border: 1px solid var(--border);
-    border-radius: 8px; font-size: 13px;
+    padding: 7px 12px; border-radius: 999px; font-size: 12px;
+    background: rgba(13,17,23,.82); border: 1px solid var(--line);
+    color: var(--muted); backdrop-filter: blur(8px); cursor: default;
   }
-  .sess-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sess-item .d { color: var(--dim); font-size: 11px; flex: none; }
-  .sess-item .x {
-    flex: none; padding: 4px 9px; font-size: 12px;
-    background: rgba(231,76,60,.14); color: var(--bad);
-    border: 1px solid rgba(231,76,60,.35); border-radius: 6px;
-    cursor: pointer; font-family: inherit;
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+  .dot.warn { background: #d29922; }
+  .dot.bad { background: var(--bad); }
+
+  #veil {
+    position: fixed; inset: 0; z-index: 4; display: none;
+    place-items: center; background: rgba(13,17,23,.86); backdrop-filter: blur(4px);
+    text-align: center; padding: 24px;
   }
-  .sess-item .x:hover { background: rgba(231,76,60,.25); }
-  .sess-item .r {
-    flex: none; padding: 4px 9px; font-size: 12px;
-    background: rgba(46,204,113,.14); color: var(--ok);
-    border: 1px solid rgba(46,204,113,.35); border-radius: 6px;
-    cursor: pointer; font-family: inherit;
+  #veil.on { display: grid; }
+  #veil h2 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
+  #veil p { margin: 0; font-size: 12px; color: var(--muted); }
+  .spinner {
+    width: 26px; height: 26px; margin: 0 auto 14px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.16); border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
   }
-  .sess-item .r:hover { background: rgba(46,204,113,.25); }
-  .empty { color: var(--dim); font-size: 12.5px; padding: 10px 0; text-align: center; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="head">
-    <div class="logo">🧠</div>
-    <h1>DeepSeek Harness</h1>
-    <p class="sub">Uzak erişim</p>
-  </div>
 
-  <div class="status" id="status">
-    <span class="dot" id="dot"></span>
-    <span id="msg">Hazır</span>
-  </div>
-
-  <form id="form" autocomplete="off">
-    <label for="pw">Erişim parolası</label>
-    <input id="pw" type="password" inputmode="text" spellcheck="false" autocomplete="current-password" placeholder="••••••••">
-    <div class="remember">
-      <input id="remember" type="checkbox" checked>
-      <label for="remember" style="margin:0">Bu cihazda hatırla</label>
+<div id="lock">
+  <form class="card" id="form" autocomplete="off">
+    <div class="brand">
+      <div class="logo">D</div>
+      <div>
+        <h1>DSH Remote</h1>
+        <p>DeepSeek Harness uzaktan erişim</p>
+      </div>
     </div>
-    <button class="btn" id="submit" type="submit">Giriş</button>
+
+    <label for="pw">Parola</label>
+    <input id="pw" type="password" inputmode="text" spellcheck="false" autocomplete="current-password" placeholder="••••••••">
+    <div class="row">
+      <input id="remember" type="checkbox" checked>
+      <span>Bu cihazda hatırla</span>
+    </div>
+    <button id="submit" type="submit">Giriş</button>
     <div class="err" id="err"></div>
+    <div class="foot" id="foot">Tünel adresi şifreli saklanır; parola olmadan okunamaz.</div>
   </form>
+</div>
 
-  <a class="btn enter" id="enter" href="#" hidden>Siteye Gir →</a>
-
-  <div class="foot" id="foot">
-    Tünel adresi şifreli saklanır. Parola olmadan okunamaz.
-  </div>
+<div id="app">
+  <iframe id="frame" title="DeepSeek Harness" allow="clipboard-read; clipboard-write; microphone; fullscreen" referrerpolicy="no-referrer"></iframe>
+  <div id="veil"><div><div class="spinner"></div><h2>Yeniden bağlanıyor…</h2><p id="veilMsg">Bağlantı kuruluyor</p></div></div>
+  <div id="hud"><span class="dot" id="dot"></span><span id="hudMsg">Bağlı</span></div>
 </div>
 
 <script>
@@ -157,126 +123,121 @@
   var STORE_KEY = "dsh.pw.v1";
   var ITER_DEFAULT = 310000;
 
-  var $ = function (id) { return document.getElementById(id); };
+  var host = "";          // aktif tunel host'u
+  var password = null;     // cozme icin elde tutulur (config yenilenince gerekir)
+  var fails = 0;
 
-  function setStatus(kind, text) {
-    $("status").className = "status " + (kind || "");
-    $("dot").className = "dot " + (kind || "");
-    $("msg").textContent = text;
-  }
+  function $(id) { return document.getElementById(id); }
 
   function b64ToBytes(b64) {
-    var bin = atob(b64);
-    var out = new Uint8Array(bin.length);
+    var bin = atob(b64), out = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
+  function txt(s) { return new TextEncoder().encode(s); }
 
-  function enc(s) { return new TextEncoder().encode(s); }
-
-  async function decrypt(cfg, password) {
-    var baseKey = await crypto.subtle.importKey(
-      "raw", enc(password), "PBKDF2", false, ["deriveKey"]
-    );
-    var aesKey = await crypto.subtle.deriveKey(
+  async function decrypt(cfg, pw) {
+    var base = await crypto.subtle.importKey("raw", txt(pw), "PBKDF2", false, ["deriveKey"]);
+    var key = await crypto.subtle.deriveKey(
       { name: "PBKDF2", salt: b64ToBytes(cfg.salt), iterations: cfg.iter || ITER_DEFAULT, hash: "SHA-256" },
-      baseKey,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["decrypt"]
+      base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
     );
-    var pt = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: b64ToBytes(cfg.iv) },
-      aesKey,
-      b64ToBytes(cfg.ct)
-    );
+    var pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(cfg.iv) }, key, b64ToBytes(cfg.ct));
     return JSON.parse(new TextDecoder().decode(pt));
   }
 
   async function loadConfig() {
-    var url = CONFIG_URL + "?_=" + Date.now();
-    var res = await fetch(url, { cache: "no-store" });
+    var res = await fetch(CONFIG_URL + "?_=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("config.json: HTTP " + res.status);
     return res.json();
   }
 
-  function go(target) {
-    setStatus("ok", "Yönlendiriliyor…");
-    setTimeout(function () { location.replace(target); }, 150);
+  function hostOf(url) {
+    try { return new URL(url).host; } catch (e) { return ""; }
   }
 
-  // Cozer, kaydeder, ama YONLENDIRMEZ. Butonu acar.
-  async function unlock(cfg, password) {
-    var obj = await decrypt(cfg, password);
-    if (!obj || !obj.url) throw new Error("boş yapı");
-    if ($("remember").checked) {
-      try { localStorage.setItem(STORE_KEY, password); } catch (e) {}
-    }
-    return obj.url;
+  function hud(kind, text) {
+    $("dot").className = "dot " + (kind || "");
+    $("hudMsg").textContent = text;
   }
 
-  function showEnter(url) {
-    var b = $("enter");
-    b.href = url;
-    b.hidden = false;
-    b.onclick = function () { setStatus("ok", "Giriş yapılıyor…"); };
-    var f = $("form");
-    if (f) f.style.display = "none";
-    $("foot").innerHTML = "Parola doğrulandı. Siteye girmek için butona bas.";
-    setStatus("ok", "Hazır");
+  function veil(on, msg) {
+    $("veil").classList.toggle("on", !!on);
+    if (msg) $("veilMsg").textContent = msg;
   }
 
-  async function start() {
-    setStatus("", "Yapılandırma okunuyor…");
+  function showApp(h) {
+    host = h;
+    $("lock").style.display = "none";
+    $("app").classList.add("on");
+    var f = $("frame");
+    // ayni host ise iframe'i yeniden yukleme
+    var cur = "";
+    try { cur = new URL(f.src).host; } catch (e) {}
+    if (cur !== h) f.src = "https://" + h + "/";
+    hud("", "Bağlı");
+    veil(false);
+  }
 
-    var cfg;
+  // config'i tazele: tunel adi degistiyse iframe'i sessizce tasi
+  async function sync() {
     try {
-      cfg = await loadConfig();
+      var cfg = await loadConfig();
+      var obj = cfg.ct ? await decrypt(cfg, password) : cfg;
+      var h = hostOf(obj.url);
+      if (!h) return;
+      if (h !== host) { veil(true, "Yeni tünel adresi alındı"); showApp(h); }
+    } catch (e) { /* parola henuz yok ya da ag hatasi */ }
+  }
+
+  // iframe'in host'u ayakta mi?
+  async function probe() {
+    if (!host) return;
+    try {
+      await fetch("https://" + host + "/?_=" + Date.now(), { mode: "no-cors", cache: "no-store" });
+      fails = 0;
+      if ($("veil").classList.contains("on")) { veil(false); hud("", "Bağlı"); sync(); }
+      else hud("", "Bağlı");
     } catch (e) {
-      setStatus("bad", "Yapılandırma okunamadı");
-      $("err").textContent = e.message;
-      return;
+      fails++;
+      if (fails >= 2) { veil(true, "Sunucuya ulaşılamıyor, tekrar deneniyor"); hud("bad", "Bağlantı yok"); }
+      else hud("warn", "Kontrol ediliyor");
     }
+  }
 
-    // Sifresiz (eski) format: dogrudan goster
-    if (!cfg.ct) {
-      if (cfg.url) { showEnter(cfg.url); return; }
-      setStatus("bad", "Yapılandırma boş");
-      return;
-    }
+  async function enter(pw) {
+    var cfg = await loadConfig();
+    var obj = cfg.ct ? await decrypt(cfg, pw) : cfg;
+    if (!obj || !obj.url) throw new Error("yapılandırma boş");
+    password = pw;
+    showApp(hostOf(obj.url));
+  }
 
-    setStatus("", "Parola gerekli");
+  async function boot() {
+    var cfg;
+    try { cfg = await loadConfig(); }
+    catch (e) { $("err").textContent = "Yapılandırma okunamadı: " + e.message; return; }
 
-    // Bu cihazda kayitli parola var mi? Coz ama YONLENDIRME.
     var saved = null;
     try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
-
     if (saved) {
-      setStatus("", "Kayıtlı parola doğrulanıyor…");
-      try {
-        var savedUrl = await unlock(cfg, saved);
-        showEnter(savedUrl);
-        return;
-      } catch (e) {
+      try { await enter(saved); } catch (e) {
         try { localStorage.removeItem(STORE_KEY); } catch (e2) {}
-        setStatus("warn", "Kayıtlı parola geçersiz");
+        $("foot").textContent = "Kayıtlı parola geçersiz, yeniden gir.";
       }
     }
-
     $("pw").focus();
+
     $("form").addEventListener("submit", async function (ev) {
       ev.preventDefault();
       var pw = $("pw").value;
       if (!pw) return;
       $("submit").disabled = true;
       $("err").textContent = "";
-      setStatus("", "Çözülüyor…");
       try {
-        var u = await unlock(cfg, pw);
-        $("submit").disabled = false;
-        showEnter(u);
+        await enter(pw);
+        if ($("remember").checked) { try { localStorage.setItem(STORE_KEY, pw); } catch (e) {} }
       } catch (e) {
-        setStatus("bad", "Parola yanlış");
         $("err").textContent = "Parola yanlış veya yapılandırma bozuk.";
         $("submit").disabled = false;
         $("pw").select();
@@ -284,7 +245,14 @@
     });
   }
 
-  start();
+  boot();
+  setInterval(function () { if (password) sync(); }, 20000);
+  setInterval(probe, 15000);
+
+  // sekmeye donunce hemen kontrol et
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && password) { probe(); sync(); }
+  });
 })();
 </script>
 </body>
