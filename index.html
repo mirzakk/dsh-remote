@@ -178,6 +178,7 @@
     if (cur !== h || !f.src) f.src = want;
     hud("", "Bağlı");
     veil(false);
+    watchFrame();
   }
 
   // config'i tazele: tunel adi degistiyse iframe'i sessizce tasi
@@ -191,19 +192,29 @@
     } catch (e) { /* parola henuz yok ya da ag hatasi */ }
   }
 
-  // iframe'in host'u ayakta mi?
-  async function probe() {
-    if (!host) return;
-    try {
-      await fetch("https://" + host + "/?_=" + Date.now(), { mode: "no-cors", cache: "no-store" });
-      fails = 0;
-      if ($("veil").classList.contains("on")) { veil(false); hud("", "Bağlı"); sync(); }
-      else hud("", "Bağlı");
-    } catch (e) {
-      fails++;
-      if (fails >= 2) { veil(true, "Sunucuya ulaşılamıyor, tekrar deneniyor"); hud("bad", "Bağlantı yok"); }
-      else hud("warn", "Kontrol ediliyor");
-    }
+  // iframe saglik takibi: tokensiz fetch YOK (401 gurultusunu onler).
+  // Yalnizca iframe'in kendi load/error olaylarini dinleriz.
+  var loadFails = 0;
+  function watchFrame() {
+    var f = $("frame");
+    if (!f || f.__watching) return;
+    f.__watching = true;
+
+    f.addEventListener("load", function () {
+      loadFails = 0;
+      veil(false);
+      hud("", "Bağlı");
+    });
+
+    f.addEventListener("error", function () {
+      loadFails++;
+      if (loadFails >= 2) {
+        veil(true, "Sunucuya ulaşılamıyor");
+        hud("bad", "Bağlantı yok");
+      } else {
+        hud("warn", "Yeniden deneniyor");
+      }
+    });
   }
 
   async function enter(pw) {
@@ -248,11 +259,11 @@
 
   boot();
   setInterval(function () { if (password) sync(); }, 20000);
-  setInterval(probe, 15000);
+  watchFrame();
 
   // sekmeye donunce hemen kontrol et
   document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && password) { probe(); sync(); }
+    if (!document.hidden && password) { sync(); }
   });
 })();
 </script>
