@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
 <meta charset="utf-8">
@@ -60,14 +60,36 @@
 
   #hud {
     position: fixed; right: 12px; bottom: 12px; z-index: 5;
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 12px; border-radius: 999px; font-size: 12px;
-    background: rgba(13,17,23,.82); border: 1px solid var(--line);
-    color: var(--muted); backdrop-filter: blur(8px); cursor: default;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 6px 6px 12px; border-radius: 999px; font-size: 12px;
+    background: rgba(13,17,23,.85); border: 1px solid var(--line);
+    color: var(--muted); backdrop-filter: blur(8px);
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
   .dot.warn { background: #d29922; }
   .dot.bad { background: var(--bad); }
+
+  .menuBtn {
+    width: 26px; height: 26px; border: 0; border-radius: 50%;
+    background: transparent; color: var(--muted); font-size: 16px; line-height: 1;
+    cursor: pointer; padding: 0;
+  }
+  .menuBtn:hover { background: rgba(127,127,127,.18); color: var(--text); }
+
+  #menu {
+    position: fixed; right: 12px; bottom: 52px; z-index: 6; min-width: 180px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px; box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  }
+  #menu[hidden] { display: none; }
+  #menu button {
+    display: block; width: 100%; text-align: left; margin: 0; padding: 9px 12px;
+    border: 0; border-radius: 7px; background: transparent; color: var(--text);
+    font: inherit; font-size: 13px; cursor: pointer;
+  }
+  #menu button:hover { background: rgba(127,127,127,.16); }
+  #logoutBtn { color: #ff8a8a; }
+  .sep { height: 1px; background: var(--line); margin: 5px 4px; }
 
   #veil {
     position: fixed; inset: 0; z-index: 4; display: none;
@@ -78,9 +100,9 @@
   #veil h2 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
   #veil p { margin: 0; font-size: 12px; color: var(--muted); }
   .spinner {
-    width: 26px; height: 26px; margin: 0 auto 14px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.16); border-top-color: var(--accent);
-    animation: spin .9s linear infinite;
+    width: 28px; height: 28px; margin: 0 auto 12px;
+    border: 3px solid rgba(76,141,255,.25); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -88,31 +110,52 @@
 <body>
 
 <div id="lock">
-  <form class="card" id="form" autocomplete="off">
+  <div class="card">
     <div class="brand">
       <div class="logo">D</div>
       <div>
         <h1>DSH Remote</h1>
-        <p>DeepSeek Harness uzaktan erişim</p>
+        <p>Uzak erişim</p>
       </div>
     </div>
 
-    <label for="pw">Parola</label>
-    <input id="pw" type="password" inputmode="text" spellcheck="false" autocomplete="current-password" placeholder="••••••••">
-    <div class="row">
-      <input id="remember" type="checkbox" checked>
-      <span>Bu cihazda hatırla</span>
-    </div>
-    <button id="submit" type="submit">Giriş</button>
-    <div class="err" id="err"></div>
-    <div class="foot" id="foot">Tünel adresi şifreli saklanır; parola olmadan okunamaz.</div>
-  </form>
+    <form id="form" autocomplete="off">
+      <label for="pw">Parola</label>
+      <input id="pw" type="password" spellcheck="false" autocomplete="current-password" placeholder="••••••••">
+
+      <div class="row">
+        <input id="remember" type="checkbox">
+        <span>Bu cihazda hatırla (otomatik bağlan)</span>
+      </div>
+
+      <button id="submit" type="submit">Bağlan</button>
+      <div class="err" id="err"></div>
+    </form>
+
+    <div class="foot" id="foot">Tünel adresi ve servisler AES-256 ile şifreli saklanır.</div>
+  </div>
 </div>
 
 <div id="app">
   <iframe id="frame" title="DeepSeek Harness" allow="clipboard-read; clipboard-write; microphone; fullscreen" referrerpolicy="no-referrer"></iframe>
-  <div id="veil"><div><div class="spinner"></div><h2>Yeniden bağlanıyor…</h2><p id="veilMsg">Bağlantı kuruluyor</p></div></div>
-  <div id="hud"><span class="dot" id="dot"></span><span id="hudMsg">Bağlı</span></div>
+
+  <div id="veil"><div>
+    <div class="spinner"></div>
+    <h2>Bağlanıyor…</h2>
+    <p id="veilMsg">Tünel aranıyor</p>
+  </div></div>
+
+  <div id="hud">
+    <span class="dot" id="dot"></span>
+    <span id="hudMsg">Hazır</span>
+    <button class="menuBtn" id="menuBtn" title="Menü" type="button">⋮</button>
+  </div>
+
+  <div id="menu" hidden>
+    <button id="logoutBtn" type="button">Çıkış yap</button>
+    <div class="sep"></div>
+    <button id="reconnectBtn" type="button">Bağlantıyı yenile</button>
+  </div>
 </div>
 
 <script>
@@ -123,8 +166,10 @@
   var STORE_KEY = "dsh.pw.v1";
   var ITER_DEFAULT = 310000;
 
-  var host = "";          // aktif tunel host'u
-  var password = null;     // cozme icin elde tutulur (config yenilenince gerekir)
+  var host = "";
+  var password = null;
+  var key = null;          // AES anahtari (servisler icin)
+  var services = null;     // { delete, mirror, passwd } — config'ten
   var fails = 0;
 
   function $(id) { return document.getElementById(id); }
@@ -136,14 +181,19 @@
   }
   function txt(s) { return new TextEncoder().encode(s); }
 
-  async function decrypt(cfg, pw) {
+  // AES anahtari turet (PBKDF2-SHA256, 310k)
+  async function deriveKey(pw, saltB64, iter) {
     var base = await crypto.subtle.importKey("raw", txt(pw), "PBKDF2", false, ["deriveKey"]);
-    var key = await crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt: b64ToBytes(cfg.salt), iterations: cfg.iter || ITER_DEFAULT, hash: "SHA-256" },
-      base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: b64ToBytes(saltB64), iterations: iter || ITER_DEFAULT, hash: "SHA-256" },
+      base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
     );
-    var pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(cfg.iv) }, key, b64ToBytes(cfg.ct));
-    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  async function decrypt(cfg, pw) {
+    var k = await deriveKey(pw, cfg.salt, cfg.iter);
+    var pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(cfg.iv) }, k, b64ToBytes(cfg.ct));
+    return { obj: JSON.parse(new TextDecoder().decode(pt)), key: k };
   }
 
   async function loadConfig() {
@@ -152,15 +202,12 @@
     return res.json();
   }
 
-  function hostOf(url) {
-    try { return new URL(url).host; } catch (e) { return ""; }
-  }
+  function hostOf(url) { try { return new URL(url).host; } catch (e) { return ""; } }
 
   function hud(kind, text) {
     $("dot").className = "dot " + (kind || "");
     $("hudMsg").textContent = text;
   }
-
   function veil(on, msg) {
     $("veil").classList.toggle("on", !!on);
     if (msg) $("veilMsg").textContent = msg;
@@ -171,7 +218,6 @@
     $("lock").style.display = "none";
     $("app").classList.add("on");
     var f = $("frame");
-    // Ilk yuklemede token'li adres sart: DSH cerezi ancak token ile kurar.
     var want = target || ("https://" + h + "/");
     var cur = "";
     try { cur = new URL(f.src).host; } catch (e) {}
@@ -181,31 +227,64 @@
     watchFrame();
   }
 
-  // config'i tazele: tunel adi degistiyse iframe'i sessizce tasi
+  // ========================================================================
+  // CIKIS: parola silinir, "hatirla" tiki kaldirilir, login ekranina donulur
+  // ========================================================================
+  function logout() {
+    // 1) Kayitli parolayi sil
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+
+    // 2) Bellekteki her seyi temizle
+    password = null;
+    key = null;
+    services = null;
+    host = "";
+
+    // 3) iframe'i bosalt (oturum kalmasin)
+    var f = $("frame");
+    try { f.src = "about:blank"; } catch (e) {}
+    try { f.removeAttribute("src"); } catch (e) {}
+
+    // 4) Form alanlarini sifirla
+    $("pw").value = "";
+    $("remember").checked = false;
+    $("remember").disabled = true;   // cikis sonrasi deaktif
+    $("err").textContent = "";
+    $("foot").textContent = "Çıkış yapıldı. Parolayı tekrar girin.";
+
+    // 5) Login ekranina don
+    $("app").classList.remove("on");
+    $("lock").style.display = "";
+    $("menu").hidden = true;
+    hud("", "Hazır");
+
+    // 6) Odagi parolaya ver
+    setTimeout(function () { $("pw").focus(); }, 100);
+  }
+
   async function sync() {
     try {
       var cfg = await loadConfig();
-      var obj = cfg.ct ? await decrypt(cfg, password) : cfg;
+      var res = cfg.ct ? await decrypt(cfg, password) : { obj: cfg, key: null };
+      var obj = res.obj;
       var h = hostOf(obj.url);
       if (!h) return;
+      // Servis adresleri de guncellensin
+      if (obj.services) services = obj.services;
       if (h !== host) { veil(true, "Yeni tünel adresi alındı"); showApp(h, obj.url); }
-    } catch (e) { /* parola henuz yok ya da ag hatasi */ }
+    } catch (e) {}
   }
 
-  // iframe saglik takibi: tokensiz fetch YOK (401 gurultusunu onler).
-  // Yalnizca iframe'in kendi load/error olaylarini dinleriz.
   var loadFails = 0;
   function watchFrame() {
     var f = $("frame");
     if (!f || f.__watching) return;
     f.__watching = true;
-
     f.addEventListener("load", function () {
       loadFails = 0;
       veil(false);
       hud("", "Bağlı");
     });
-
     f.addEventListener("error", function () {
       loadFails++;
       if (loadFails >= 2) {
@@ -219,51 +298,88 @@
 
   async function enter(pw) {
     var cfg = await loadConfig();
-    var obj = cfg.ct ? await decrypt(cfg, pw) : cfg;
+    var res = await decrypt(cfg, pw);
+    var obj = res.obj;
     if (!obj || !obj.url) throw new Error("yapılandırma boş");
     password = pw;
+    key = res.key;
+    services = obj.services || null;   // sifreli config'ten gelen servis adresleri
     showApp(hostOf(obj.url), obj.url);
   }
 
   async function boot() {
-    var cfg;
-    try { cfg = await loadConfig(); }
-    catch (e) { $("err").textContent = "Yapılandırma okunamadı: " + e.message; return; }
+    $("remember").disabled = false;
 
     var saved = null;
     try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
     if (saved) {
-      try { await enter(saved); } catch (e) {
+      $("pw").value = saved;
+      $("remember").checked = true;
+      $("foot").textContent = "Kayıtlı parola ile bağlanılıyor…";
+      try {
+        await enter(saved);
+        return;
+      } catch (e) {
         try { localStorage.removeItem(STORE_KEY); } catch (e2) {}
+        $("pw").value = "";
+        $("remember").checked = false;
         $("foot").textContent = "Kayıtlı parola geçersiz, yeniden gir.";
       }
     }
     $("pw").focus();
-
-    $("form").addEventListener("submit", async function (ev) {
-      ev.preventDefault();
-      var pw = $("pw").value;
-      if (!pw) return;
-      $("submit").disabled = true;
-      $("err").textContent = "";
-      try {
-        await enter(pw);
-        if ($("remember").checked) { try { localStorage.setItem(STORE_KEY, pw); } catch (e) {} }
-      } catch (e) {
-        $("err").textContent = "Parola yanlış veya yapılandırma bozuk.";
-        $("submit").disabled = false;
-        $("pw").select();
-      }
-    });
   }
+
+  $("form").addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    var pw = $("pw").value;
+    if (!pw) return;
+    $("submit").disabled = true;
+    $("err").textContent = "";
+    try {
+      await enter(pw);
+      if ($("remember").checked) {
+        try { localStorage.setItem(STORE_KEY, pw); } catch (e) {}
+      } else {
+        try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      }
+    } catch (e) {
+      $("err").textContent = "Parola yanlış veya yapılandırma bozuk.";
+      $("pw").select();
+    } finally {
+      $("submit").disabled = false;
+    }
+  });
+
+  // Menu
+  $("menuBtn").addEventListener("click", function (ev) {
+    ev.stopPropagation();
+    $("menu").hidden = !$("menu").hidden;
+  });
+  document.addEventListener("click", function () { $("menu").hidden = true; });
+  $("menu").addEventListener("click", function (ev) { ev.stopPropagation(); });
+
+  $("logoutBtn").addEventListener("click", logout);
+
+  $("reconnectBtn").addEventListener("click", async function () {
+    $("menu").hidden = true;
+    if (!password) return;
+    veil(true, "Yeniden bağlanılıyor");
+    try { await sync(); } catch (e) {}
+    veil(false);
+  });
+
+  // Klavye: Esc ile cikis onayi
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && $("app").classList.contains("on")) {
+      if (confirm("Çıkış yapılsın mı?")) logout();
+    }
+  });
 
   boot();
   setInterval(function () { if (password) sync(); }, 20000);
-  watchFrame();
 
-  // sekmeye donunce hemen kontrol et
   document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && password) { sync(); }
+    if (!document.hidden && password) sync();
   });
 })();
 </script>
